@@ -177,13 +177,14 @@ class WhiteWindow(Widget):
 
     def open_readme(self, instance):
         readme_file = "README.txt"
-        # try:
-        with open(readme_file, "r") as file:
-            readme_popup_text = file.read()
-            readme_popup = ReaderPopup(readme_popup_text)
+        try:
+            with open(readme_file, "r") as file:
+                readme_popup_text = file.read()
+                readme_popup = ReaderPopup(readme_popup_text)
+                readme_popup.open()
+        except Exception as e:
+            readme_popup =ReaderPopup(f"Error opening {readme_file}: {str(e)}")
             readme_popup.open()
-        # except Exception as e:
-            # print("Readme file not found")
     
     def open_edit_popup(self, instance):
         edit_popup = EditPopup(self.recorded_events_input.text)
