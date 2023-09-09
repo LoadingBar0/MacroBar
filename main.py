@@ -15,7 +15,7 @@ from pynput import mouse, keyboard
 
 import pydirectinput
 
-from os import environ, path
+from os import environ, path, getcwd
 
 
 # Set the window size and prevent resizing
@@ -27,7 +27,7 @@ environ["KIVY_NO_ENV_CONFIG"] = "1"
 
 class EditPopup(Popup):
     def __init__(self, initial_text, **kwargs):
-        super().__init__(title="Macro Editor", **kwargs)
+        super().__init__(title="File Editor", **kwargs)
         self.initial_text = initial_text
         self.text_input = TextInput(text=initial_text, multiline=True)
 
@@ -46,6 +46,22 @@ class EditPopup(Popup):
         self.dismiss()
         if hasattr(self, 'callback'):
             self.callback(edited_text)
+
+class ReaderPopup(Popup):
+    def __init__(self, initial_text, **kwargs):
+        super().__init__(title="FIle Reader", **kwargs)
+        self.initial_text = initial_text
+        self.text_input = TextInput(text=initial_text, multiline=True, readonly=True)
+
+        content_layout = BoxLayout(orientation='vertical')
+        content_layout.add_widget(self.text_input)
+
+        self.close_button = Button(text="close", size_hint_y=None, height=30)
+        self.close_button.bind(on_release=self.dismiss)
+
+        content_layout.add_widget(self.close_button)
+
+        self.content = content_layout
 
 class WhiteWindow(Widget):
     def __init__(self, **kwargs):
@@ -102,16 +118,13 @@ class WhiteWindow(Widget):
 
         # Create menu buttons and add them to the menu bar
         self.file_button = Button(text="File", size_hint_x=None, width=100)
-        self.edit_button = Button(text="Edit", size_hint_x=None, width=100)
         self.help_button = Button(text="Help", size_hint_x=None, width=100)
         
         self.menu_bar.add_widget(self.file_button)
-        self.menu_bar.add_widget(self.edit_button)
         self.menu_bar.add_widget(self.help_button)
 
         # Bind menu button clicks to their respective actions
         self.file_button.bind(on_release=self.show_file_menu)
-        self.edit_button.bind(on_release=self.show_edit_menu)
         self.help_button.bind(on_release=self.show_help_menu)
         
         # Position the menu layout at the top
@@ -148,32 +161,12 @@ class WhiteWindow(Widget):
         # Open the drop-down below the "File" button
         dropdown.open(self.file_button) 
 
-    def show_edit_menu(self, instance):
-        # Create a drop-down for the File menu
-        dropdown = DropDown()
-
-        # Create menu items and add them to the drop-down
-        undo_item = Button(text="Undo", size_hint_y=None, height=30)
-        redo_item = Button(text="Redo", size_hint_y=None, height=30)
-        cut_item = Button(text="Cut", size_hint_y=None, height=30)
-        copy_item = Button(text="Copy", size_hint_y=None, height=30)
-        paste_item = Button(text="Paste", size_hint_y=None, height=30)
-
-        dropdown.add_widget(undo_item)
-        dropdown.add_widget(redo_item)
-        dropdown.add_widget(cut_item)
-        dropdown.add_widget(copy_item)
-        dropdown.add_widget(paste_item)
-
-        # Open the drop-down below the "Edit" button
-        dropdown.open(self.edit_button)
-
     def show_help_menu(self, instance):
         # Create a drop-down for the File menu
         dropdown = DropDown()
 
         # Create menu items and add them to the drop-down
-        about_item = Button(text="About", size_hint_y=None, height=30)
+        about_item = Button(text="About", size_hint_y=None, height=30, on_release=self.open_readme)
         help_item = Button(text="Help", size_hint_y=None, height=30)
 
         dropdown.add_widget(about_item)
@@ -182,6 +175,16 @@ class WhiteWindow(Widget):
         # Open the drop-down below the "Help" button
         dropdown.open(self.help_button)
 
+    def open_readme(self, instance):
+        readme_file = "README.txt"
+        # try:
+        with open(readme_file, "r") as file:
+            readme_popup_text = file.read()
+            readme_popup = ReaderPopup(readme_popup_text)
+            readme_popup.open()
+        # except Exception as e:
+            # print("Readme file not found")
+    
     def open_edit_popup(self, instance):
         edit_popup = EditPopup(self.recorded_events_input.text)
         edit_popup.callback = self.save_edited_text  # Assign the callback
@@ -196,7 +199,7 @@ class WhiteWindow(Widget):
             with open("Recording.txt", "r") as file:
                 self.recorded_events_input.text = file.read()
         except Exception as e:
-            self.recorded_events_input.text = f"Error loading Recording.txt: {str(e)}"
+            pass
 
     def toggle_recording(self, instance):
         if self.is_recording:
