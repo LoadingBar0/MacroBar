@@ -25,6 +25,27 @@ Config.set('graphics', 'height', '600')
 Config.set('graphics', 'fullscreen', '0')
 environ["KIVY_NO_ENV_CONFIG"] = "1"
 
+class LoopPopup(Popup):
+    def __init__(self, **kwargs):
+        super().__init__(title="Loop", **kwargs)
+        self.text_input = TextInput(text="1", multiline=False)
+
+        content_layout = BoxLayout(orientation='vertical')
+        content_layout.add_widget(self.text_input)
+
+        self.save_button = Button(text="Save", size_hint_y=None, height=30)
+        self.save_button.bind(on_release=self.save_text)
+
+        content_layout.add_widget(self.save_button)
+
+        self.content = content_layout
+
+    def save_text(self, instance):
+        loop_text = self.text_input.text
+        self.dismiss()
+        if hasattr(self, 'callback'):
+            self.callback(loop_text)
+
 class EditPopup(Popup):
     def __init__(self, initial_text, **kwargs):
         super().__init__(title="File Editor", **kwargs)
@@ -151,12 +172,14 @@ class WhiteWindow(Widget):
         open_item = Button(text="Open", size_hint_y=None, height=30)
         save_item = Button(text="Save", size_hint_y=None, height=30)
         save_as_item = Button(text="Save As", size_hint_y=None, height=30)
+        loop = Button(text="Loop", size_hint_y=None, height=30, on_release=self.open_loop_popup)
 
         dropdown.add_widget(edit_file)
         dropdown.add_widget(new_item)
         dropdown.add_widget(open_item)
         dropdown.add_widget(save_item)
         dropdown.add_widget(save_as_item)
+        dropdown.add_widget(loop)
 
         # Open the drop-down below the "File" button
         dropdown.open(self.file_button) 
@@ -185,6 +208,16 @@ class WhiteWindow(Widget):
         except Exception as e:
             readme_popup =ReaderPopup(f"Error opening {readme_file}: {str(e)}")
             readme_popup.open()
+    
+    def open_loop_popup(self, instance):
+        loop_popup = LoopPopup()
+        loop_popup.callback = self.save_loop_text  # Assign the callback
+        loop_popup.open()
+
+    def save_loop_text(self, loop_text):
+        if loop_text.isdigit():
+            with open("Loops.txt", "w") as file:
+                file.write(loop_text)
     
     def open_edit_popup(self, instance):
         edit_popup = EditPopup(self.recorded_events_input.text)
@@ -333,7 +366,13 @@ class WhiteWindow(Widget):
                 Clock.schedule_once(replay_next_event, 0.1)  # Schedule the next event with a delay
 
         if events:
-            replay_next_event(0)  # Start replaying events
+            with open("Loops.txt", "r") as file:
+                loop_text = file.read()
+                if loop_text.isdigit():
+                    for i in range(int(loop_text)):
+                        replay_next_event(0) # Start replaying events
+                else:
+                    replay_next_event(0)
 
 class MyApp(App):
     def build(self):
